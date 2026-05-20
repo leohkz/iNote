@@ -1,59 +1,54 @@
-# 🎙️ iNote – 即時語音筆記 Web App
+# 🎙️ iNote v2 – 即時語音筆記 Web App
 
-> 免費、無需後端、無需付費API的語音轉文字筆記應用，針對手機使用優化。
+> 免費、無需後端、無需付費API的語音轉文字筆記，針對手機使用優化。
 
-## ✨ 功能特色
+## ✨ v2 新功能
 
-- 🎤 **即時語音轉文字** — 使用瀏覽器內建 Web Speech API（完全免費）
-- ✨ **自動摘要生成** — 本地端抽取式摘要，無需任何外部 API
-- 🕐 **時間戳紀錄** — 每次總結附帶時間戳，點擊即可查看該段內容
-- 🌙 **亮色 / 暗色主題切換** — 自動記憶主題偏好
-- 📱 **手機優先設計** — 響應式介面，適合單手操作
+| 功能 | 說明 |
+|------|------|
+| 🎙 錄音回播 | MediaRecorder 儲存音訊，筆記內可回播 |
+| 🎥 字幕同步 | 回播時自動醒目關鍵字幕，點擊字幕可跳轉 |
+| ✨ AI 總結 | 使用 HuggingFace mT5 多語言模型，免費、無需API Key |
+| 📝 字幕/總結/全文分頁 | 筆記詳情分三個小頁果分開顯示 |
+| 🔍 搜尋筆記 | 全文搜尋所有筆記 |
+| 🗑 刪除筆記 | 在筆記列表刪除 |
+| ⏱ 錄音計時 | 顯示錄音時長 |
 
 ## 🚀 快速開始
 
-1. Clone 此專案：
-   ```bash
-   git clone https://github.com/leohkz/iNote.git
-   cd iNote
-   ```
-2. 用任意本地伺服器開啟（語音API需要 HTTPS 或 localhost）：
-   ```bash
-   npx serve .
-   # 或直接用 VS Code Live Server
-   ```
-3. 在 Chrome（手機/電腦）開啟，授予麥克風權限，開始錄音！
-
-## 🌐 直接使用（GitHub Pages）
-
-啟用 GitHub Pages 後，直接訪問：
+### GitHub Pages (免費托管)
+1. 進入倉庫 Settings → Pages
+2. Source 選 **Deploy from branch → main → / (root)**
+3. 儲存後等一分鐘，訪問：
 ```
 https://leohkz.github.io/iNote
+```
+
+### 本地開發
+```bash
+git clone https://github.com/leohkz/iNote.git
+cd iNote
+npx serve .
 ```
 
 ## 🛠️ 技術架構
 
 | 功能 | 技術 |
 |------|------|
-| 語音識別 | Web Speech API（免費，瀏覽器內建）|
-| 摘要算法 | 詞頻抽取式摘要（本地運算）|
-| 資料儲存 | localStorage（本地儲存）|
-| 樣式框架 | 純 CSS（CSS Variables 主題切換）|
-| 部署 | GitHub Pages（完全免費）|
-
-## 📱 使用說明
-
-1. **錄音頁面**：點擊「▶ 開始」，說話，即時看到文字。
-2. **生成總結**：點擊「✨ 生成總結」，自動摘要並儲存。
-3. **總結頁面**：切換到「總結」頁，點擊時間戳按鈕查看內容。
-4. **主題切換**：右上角 🌙/☀️ 按鈕切換亮暗模式。
+| 語音識別 | Web Speech API (`zh-HK`/`zh-TW`/`zh-CN`/`en-US`) |
+| 錄音儲存 | MediaRecorder API → Base64 儲入 localStorage |
+| AI 總結 | HuggingFace mT5_multilingual_XLSum (免費) |
+| 本地備用 | 詞頻抽取式摘要 |
+| 資料儲存 | localStorage |
+| 樣式 | 純 CSS Variables 双主題 |
+| 部署 | GitHub Pages |
 
 ## ⚠️ 注意事項
 
-- 語音識別需要 **Chrome 瀏覽器**（桌面版或 Android 版）
-- 需要麥克風授權
-- iOS Safari 支援有限，建議使用 Android Chrome
-- 總結儲存在本地裝置，清除瀏覽器資料會同時清除筆記
+- **語音識別需要 Chrome**（Android 或桌面）
+- **錄音以 Base64 儲入 localStorage**，3MB 以内的錄音會自動儲存
+- **AI 總結**使用 HuggingFace 免費 API，高峰期可能較慢，會自動備用本地摘要
+- iOS Safari 語音支援有限，建議 Android Chrome
 
 ## 📄 授權
 
