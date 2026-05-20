@@ -44,7 +44,6 @@
   --shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
-/* ===== Reset ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -55,7 +54,6 @@ body {
   transition: background var(--transition), color var(--transition);
 }
 
-/* ===== Header ===== */
 header {
   display: flex;
   align-items: center;
@@ -109,7 +107,6 @@ header {
   color: #fff;
 }
 
-/* ===== Pages ===== */
 main {
   padding: 20px 16px 100px;
   max-width: 600px;
@@ -117,7 +114,6 @@ main {
 }
 .hidden { display: none !important; }
 
-/* ===== Status Card ===== */
 .status-card {
   display: flex;
   align-items: center;
@@ -125,7 +121,7 @@ main {
   background: var(--surface);
   border-radius: var(--radius);
   padding: 14px 18px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   box-shadow: var(--shadow);
 }
 
@@ -146,7 +142,32 @@ main {
   50% { transform: scale(1.4); opacity: 0.7; }
 }
 
-/* ===== Buttons ===== */
+/* Language Selector */
+.lang-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.lang-select {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+.lang-select:focus { border-color: var(--primary); }
+.lang-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .btn-row {
   display: flex;
   gap: 10px;
@@ -167,21 +188,15 @@ button { cursor: pointer; font-family: inherit; }
 
 .btn-primary  { background: var(--primary);   color: #fff; }
 .btn-primary:hover:not(:disabled)  { background: var(--primary-dark); }
-
 .btn-danger   { background: var(--danger);    color: #fff; }
 .btn-danger:hover:not(:disabled)   { background: var(--danger-dark); }
-
 .btn-secondary { background: var(--secondary); color: var(--secondary-text); }
 .btn-secondary:hover { background: var(--border); }
-
 .btn-accent   { background: var(--accent);    color: #fff; margin-top: 14px; }
 .btn-accent:hover { background: var(--accent-dark); }
-
 .full-width { width: 100%; }
-
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ===== Transcript Box ===== */
 .transcript-box {
   background: var(--surface);
   border: 2px solid var(--border);
@@ -202,7 +217,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--text-muted);
 }
 
-/* ===== Summary Page ===== */
 .section-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -239,17 +253,24 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .timestamp-btn:hover { background: var(--surface2); }
 
 .ts-icon { font-size: 1.2rem; }
-
 .ts-info { flex: 1; }
-.ts-time { font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+.ts-time { font-weight: 700; color: var(--primary); font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
 .ts-preview { color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
-
 .ts-arrow { color: var(--text-muted); font-size: 1rem; }
+
+.lang-badge {
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
 
 .empty-hint { color: var(--text-muted); text-align: center; padding: 40px 0; font-size: 0.9rem; }
 
-/* ===== Modal ===== */
 .modal {
   position: fixed;
   inset: 0;

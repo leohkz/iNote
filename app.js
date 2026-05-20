@@ -32,6 +32,16 @@ tabSummary.addEventListener('click', () => {
   renderSummaries();
 });
 
+// ===== Language Selector =====
+const langSelect = document.getElementById('langSelect');
+const savedLang = localStorage.getItem('inote-lang') || 'zh-HK';
+langSelect.value = savedLang;
+
+langSelect.addEventListener('change', () => {
+  localStorage.setItem('inote-lang', langSelect.value);
+  if (recognition) recognition.lang = langSelect.value;
+});
+
 // ===== Speech Recognition =====
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
@@ -48,7 +58,7 @@ const btnSummarize = document.getElementById('btnSummarize');
 
 if (SpeechRecognition) {
   recognition = new SpeechRecognition();
-  recognition.lang = 'zh-TW';
+  recognition.lang = savedLang;
   recognition.continuous = true;
   recognition.interimResults = true;
 
@@ -65,7 +75,7 @@ if (SpeechRecognition) {
   };
 
   recognition.onend = () => {
-    if (isListening) recognition.start(); // keep alive
+    if (isListening) recognition.start();
   };
 
   recognition.onerror = (e) => {
@@ -81,12 +91,14 @@ if (SpeechRecognition) {
 
 function startRecognition() {
   if (!recognition) return;
+  recognition.lang = langSelect.value;
   isListening = true;
   recognition.start();
   statusDot.className = 'dot active';
   statusText.textContent = '錄音中…';
   btnStart.disabled = true;
   btnStop.disabled = false;
+  langSelect.disabled = true;
 }
 
 function stopRecognition() {
@@ -96,6 +108,7 @@ function stopRecognition() {
   statusText.textContent = '已停止';
   btnStart.disabled = false;
   btnStop.disabled = true;
+  langSelect.disabled = false;
 }
 
 btnStart.addEventListener('click', startRecognition);
@@ -106,30 +119,21 @@ btnClear.addEventListener('click', () => {
 });
 
 // ===== Auto Summarize (free, on-device) =====
-// Uses extractive summarization — no API needed.
 function summarize(text) {
   if (!text.trim()) return '（沒有內容可總結）';
-
-  // Split into sentences (Chinese & general)
   const sentences = text.match(/[^。！？.!?\n]+[。！？.!?\n]?/g) || [text];
   if (sentences.length <= 3) return text.trim();
-
-  // Score each sentence by word frequency
   const words = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, ' ').split(/\s+/).filter(Boolean);
   const freq = {};
   words.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-
   const scored = sentences.map((s, i) => {
     const sw = s.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, ' ').split(/\s+/).filter(Boolean);
     const score = sw.reduce((sum, w) => sum + (freq[w] || 0), 0) / (sw.length || 1);
     return { s, score, i };
   });
-
-  // Pick top ~30% sentences, restore original order
   const topN = Math.max(2, Math.ceil(sentences.length * 0.3));
   const top = scored.sort((a, b) => b.score - a.score).slice(0, topN);
   top.sort((a, b) => a.i - b.i);
-
   return top.map(t => t.s.trim()).join('\n');
 }
 
@@ -144,24 +148,23 @@ function saveSummaries(arr) {
 btnSummarize.addEventListener('click', () => {
   const text = transcriptBox.textContent.trim();
   if (!text) { alert('請先錄音或輸入文字。'); return; }
-
   const now = new Date();
-  const timestamp = now.toLocaleString('zh-TW', {
+  const timestamp = now.toLocaleString('zh-HK', {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
-
   const summary = summarize(text);
-  const record = { timestamp, summary, full: text };
-
+  const lang = langSelect.value;
+  const record = { timestamp, summary, full: text, lang };
   const summaries = loadSummaries();
   summaries.unshift(record);
   saveSummaries(summaries);
-
   alert('✅ 總結已儲存！');
 });
 
 // ===== Render Summary List =====
+const langLabel = { 'zh-HK': '粵', 'zh-TW': '繁', 'zh-CN': '簡' };
+
 function renderSummaries() {
   const list = document.getElementById('summaryList');
   const summaries = loadSummaries();
@@ -174,14 +177,13 @@ function renderSummaries() {
       <button class="timestamp-btn" data-index="${i}">
         <span class="ts-icon">🕐</span>
         <div class="ts-info">
-          <div class="ts-time">${r.timestamp}</div>
+          <div class="ts-time">${r.timestamp} <span class="lang-badge">${langLabel[r.lang] || ''}</span></div>
           <div class="ts-preview">${r.summary.slice(0, 60)}…</div>
         </div>
         <span class="ts-arrow">›</span>
       </button>
     </div>
   `).join('');
-
   list.querySelectorAll('.timestamp-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.index);

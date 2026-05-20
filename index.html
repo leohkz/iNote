@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-HK">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,6 +23,16 @@
     <div class="status-card">
       <div id="statusDot" class="dot idle"></div>
       <span id="statusText">點擊開始錄音</span>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="lang-row">
+      <label for="langSelect">🌐 語言：</label>
+      <select id="langSelect" class="lang-select">
+        <option value="zh-HK">粵語（香港）</option>
+        <option value="zh-TW">普通話（繁體）</option>
+        <option value="zh-CN">普通話（簡體）</option>
+      </select>
     </div>
 
     <div class="btn-row">
