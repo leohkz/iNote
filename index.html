@@ -84,23 +84,30 @@
           <label class="setting-label">模型快選</label>
           <select id="nvidiaModelPreset" class="lang-select">
             <option value="">-- 快選常用模型 --</option>
-            <option value="meta/llama-3.1-8b-instruct">Llama 3.1 8B （免費額度最高）</option>
-            <option value="meta/llama-3.1-70b-instruct">Llama 3.1 70B</option>
-            <option value="meta/llama-3.3-70b-instruct">Llama 3.3 70B （最新）</option>
-            <option value="deepseek-ai/deepseek-r1">DeepSeek R1 🔥</option>
-            <option value="deepseek-ai/deepseek-r1-distill-qwen-32b">DeepSeek R1 Distill 32B</option>
-            <option value="deepseek-ai/deepseek-v3">DeepSeek V3</option>
-            <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
-            <option value="mistralai/mixtral-8x7b-instruct-v0.1">Mixtral 8x7B</option>
-            <option value="google/gemma-2-9b-it">Google Gemma 2 9B</option>
-            <option value="nvidia/nemotron-4-340b-instruct">Nemotron 340B （最強）</option>
-            <option value="qwen/qwen2.5-72b-instruct">Qwen 2.5 72B</option>
+            <optgroup label="🔥 DeepSeek">
+              <option value="deepseek-ai/deepseek-v4-flash">DeepSeek V4 Flash ⚡ 最新</option>
+              <option value="deepseek-ai/deepseek-r1">DeepSeek R1</option>
+              <option value="deepseek-ai/deepseek-v3">DeepSeek V3</option>
+              <option value="deepseek-ai/deepseek-r1-distill-qwen-32b">DeepSeek R1 Distill 32B</option>
+            </optgroup>
+            <optgroup label="Meta Llama">
+              <option value="meta/llama-3.1-8b-instruct">Llama 3.1 8B（免費額度最高）</option>
+              <option value="meta/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+              <option value="meta/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+            </optgroup>
+            <optgroup label="其他">
+              <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
+              <option value="mistralai/mixtral-8x7b-instruct-v0.1">Mixtral 8x7B</option>
+              <option value="google/gemma-2-9b-it">Google Gemma 2 9B</option>
+              <option value="qwen/qwen2.5-72b-instruct">Qwen 2.5 72B</option>
+              <option value="nvidia/nemotron-4-340b-instruct">Nemotron 340B（最強）</option>
+            </optgroup>
           </select>
         </div>
         <div class="setting-item">
           <label class="setting-label">模型名稱（可自由輸入）</label>
           <div class="api-input-row">
-            <input id="nvidiaModel" type="text" class="api-input" placeholder="例: deepseek-ai/deepseek-r1" />
+            <input id="nvidiaModel" type="text" class="api-input" placeholder="例: deepseek-ai/deepseek-v4-flash" />
             <button id="nvidiaModelSave" class="btn-save">儲存</button>
           </div>
           <p class="setting-hint">可到 <a href="https://build.nvidia.com/models" target="_blank" class="guide-link">build.nvidia.com/models</a> 查看全部可用模型</p>
@@ -120,7 +127,7 @@
         <div class="setting-item">
           <label class="setting-label">選擇模型</label>
           <select id="openaiModel" class="lang-select">
-            <option value="gpt-4o-mini">GPT-4o Mini （機价最低）</option>
+            <option value="gpt-4o-mini">GPT-4o Mini（機价最低）</option>
             <option value="gpt-4o">GPT-4o</option>
             <option value="gpt-4-turbo">GPT-4 Turbo</option>
           </select>
@@ -132,10 +139,10 @@
     <div class="settings-section">
       <h2 class="settings-title">📖 如何獲取免費 NVIDIA NIM API</h2>
       <div class="guide-steps">
-        <div class="guide-step"><div class="step-num">1</div><div class="step-body"><div class="step-title">註冊帳號</div><div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點『 Sign Up 』，用郵筱免費註冊</div></div></div>
-        <div class="guide-step"><div class="step-num">2</div><div class="step-body"><div class="step-title">進入任意模型頁</div><div class="step-desc">登入後點擊任意模型（建議 <strong>DeepSeek R1</strong> 或 <strong>Llama 3.1 8B</strong>）</div></div></div>
+        <div class="guide-step"><div class="step-num">1</div><div class="step-body"><div class="step-title">註冊帳號</div><div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點『 Sign Up 』，用郵箱免費註冊</div></div></div>
+        <div class="guide-step"><div class="step-num">2</div><div class="step-body"><div class="step-title">進入任意模型頁</div><div class="step-desc">登入後點擊任意模型（建議 <strong>DeepSeek V4 Flash</strong> 或 <strong>Llama 3.1 8B</strong>）</div></div></div>
         <div class="guide-step"><div class="step-num">3</div><div class="step-body"><div class="step-title">獲取 API Key</div><div class="step-desc">點『 Get API Key 』 → 『 Generate Key 』 → 複製 <code>nvapi-</code> 開頭字串</div></div></div>
-        <div class="guide-step"><div class="step-num">4</div><div class="step-body"><div class="step-title">貼入上方儲存</div><div class="step-desc">🎁 新帳戶每月免費 <strong>1000 次</strong> API 呼叫，其中 DeepSeek R1 販貭額度版可免費無限次使用</div></div></div>
+        <div class="guide-step"><div class="step-num">4</div><div class="step-body"><div class="step-title">貼入上方儲存</div><div class="step-desc">🎁 新帳戶每月免費 <strong>1000 次</strong> API 呼叫</div></div></div>
       </div>
     </div>
 
