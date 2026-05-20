@@ -17,17 +17,27 @@
     </div>
   </header>
 
-  <!-- RECORD PAGE -->
   <main id="pageRecord">
 
     <div class="status-card">
       <div id="statusDot" class="dot idle"></div>
-      <span id="statusText">選擇語言後開始錄音</span>
+      <span id="statusText">點擊『開始』錄音</span>
       <span id="recTimer" class="rec-timer"></span>
     </div>
 
-    <div class="lang-row">
-      <label for="langSelect">🌐</label>
+    <!-- Engine toggle -->
+    <div class="engine-row">
+      <span class="engine-label">識別引擎</span>
+      <div class="engine-tabs">
+        <button id="engineBrowser" class="engine-btn active">🌐 瀏覽器</button>
+        <button id="engineWhisper" class="engine-btn">✨ Whisper AI</button>
+      </div>
+      <span id="whisperStatus" class="whisper-status hidden"></span>
+    </div>
+
+    <!-- Language row: only shown for browser mode -->
+    <div id="langRow" class="lang-row">
+      <label for="langSelect">🌐 語言</label>
       <select id="langSelect" class="lang-select">
         <option value="zh-HK">粵語（香港）</option>
         <option value="zh-TW">普通話（繁體）</option>
@@ -36,16 +46,14 @@
       </select>
     </div>
 
-    <!-- 3 control buttons -->
     <div class="btn-row">
       <button id="btnStart"  class="btn-primary">▶ 開始</button>
-      <button id="btnPause"  class="btn-warn"    disabled>⏸ 暫停</button>
-      <button id="btnReset"  class="btn-secondary">🔄 重新錄製</button>
+      <button id="btnPause"  class="btn-warn" disabled>⏸ 暫停</button>
+      <button id="btnReset"  class="btn-secondary">🔄 重新</button>
     </div>
 
     <div id="transcript" class="transcript-box" placeholder="開始錄音後，文字會即時顯示在這裡…"></div>
 
-    <!-- Finish = stop + save together -->
     <div class="action-row">
       <button id="btnFinish" class="btn-finish" disabled>
         <span class="btn-icon">⏹</span>
@@ -53,7 +61,6 @@
       </button>
     </div>
 
-    <!-- AI Summary Card -->
     <div class="ai-card">
       <div class="ai-card-header">
         <span class="ai-card-title">✨ AI 智慧總結</span>
@@ -66,7 +73,6 @@
 
   </main>
 
-  <!-- NOTES PAGE -->
   <main id="pageNotes" class="hidden">
     <div class="notes-toolbar">
       <input id="searchInput" class="search-input" type="text" placeholder="🔍 搜尋筆記…" />
@@ -74,7 +80,6 @@
     <div id="notesList" class="notes-list"></div>
   </main>
 
-  <!-- NOTE DETAIL MODAL -->
   <div id="noteModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -89,18 +94,14 @@
       <div id="audioPlayerWrap" class="audio-wrap hidden">
         <audio id="audioPlayer" controls></audio>
       </div>
-      <div id="tabSubtitles" class="modal-body">
-        <div id="subtitleList" class="subtitle-list"></div>
-      </div>
-      <div id="tabSummary" class="modal-body hidden">
-        <div id="modalSummary" class="modal-summary-text"></div>
-      </div>
-      <div id="tabFull" class="modal-body hidden">
-        <div id="modalFull" class="modal-full-text"></div>
-      </div>
+      <div id="tabSubtitles" class="modal-body"><div id="subtitleList" class="subtitle-list"></div></div>
+      <div id="tabSummary"   class="modal-body hidden"><div id="modalSummary" class="modal-summary-text"></div></div>
+      <div id="tabFull"      class="modal-body hidden"><div id="modalFull" class="modal-full-text"></div></div>
     </div>
   </div>
 
+  <!-- Whisper.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
