@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iNote – 語音筆記</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="light">
+
+  <!-- Top Bar -->
+  <header>
+    <div class="logo">🎙️ iNote</div>
+    <div class="header-actions">
+      <button id="themeToggle" title="切換主題">🌙</button>
+      <button id="tabRecord" class="tab-btn active">錄音</button>
+      <button id="tabSummary" class="tab-btn">總結</button>
+    </div>
+  </header>
+
+  <!-- Recording Page -->
+  <main id="pageRecord">
+    <div class="status-card">
+      <div id="statusDot" class="dot idle"></div>
+      <span id="statusText">點擊開始錄音</span>
+    </div>
+
+    <div class="btn-row">
+      <button id="btnStart" class="btn-primary">▶ 開始</button>
+      <button id="btnStop" class="btn-danger" disabled>⏹ 停止</button>
+      <button id="btnClear" class="btn-secondary">🗑 清除</button>
+    </div>
+
+    <div id="transcript" class="transcript-box" placeholder="轉錄文字會在這裡顯示…"></div>
+
+    <button id="btnSummarize" class="btn-accent full-width">✨ 生成總結</button>
+  </main>
+
+  <!-- Summary Page -->
+  <main id="pageSummary" class="hidden">
+    <h2 class="section-title">📋 總結紀錄</h2>
+    <div id="summaryList" class="summary-list">
+      <p class="empty-hint">還沒有總結。回到錄音頁面生成。</p>
+    </div>
+  </main>
+
+  <!-- Summary Detail Modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="modalTime" class="modal-time"></span>
+        <button id="modalClose" class="modal-close">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
