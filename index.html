@@ -25,7 +25,6 @@
       <span id="statusText">點擊『開始』錄音</span>
       <span id="recTimer" class="rec-timer"></span>
     </div>
-
     <div class="lang-row">
       <label for="langSelect">🌐 語言</label>
       <select id="langSelect" class="lang-select">
@@ -35,31 +34,16 @@
         <option value="en-US">English (US)</option>
       </select>
     </div>
-
     <div class="btn-row">
       <button id="btnStart"  class="btn-primary">▶ 開始</button>
       <button id="btnPause"  class="btn-warn" disabled>⏸ 暫停</button>
       <button id="btnReset"  class="btn-secondary">🔄 重新</button>
     </div>
-
     <div id="transcript" class="transcript-box" placeholder="開始錄音後，文字會即時顯示在這裡…"></div>
-
     <div class="action-row">
       <button id="btnFinish" class="btn-finish" disabled>
-        <span class="btn-icon">⏹</span>
-        <span>結束錄製並儲存</span>
+        <span class="btn-icon">⏹</span><span>結束錄製並儲存</span>
       </button>
-    </div>
-
-    <div class="ai-card">
-      <div class="ai-card-header">
-        <span class="ai-card-title">✨ AI 智慧總結</span>
-        <span id="aiEngineLabel" class="ai-engine-label"></span>
-        <button id="btnSummarize" class="btn-ai">生成</button>
-      </div>
-      <div id="summaryArea" class="ai-card-body hidden">
-        <div id="summaryOutput" class="ai-output"></div>
-      </div>
     </div>
   </main>
 
@@ -81,27 +65,53 @@
         <label class="setting-label">引擎選擇</label>
         <select id="aiEngine" class="lang-select">
           <option value="local">📱 本地引擎（免費，無需 API）</option>
-          <option value="nvidia">⚡️ NVIDIA NIM（免費，高質量）</option>
-          <option value="openai">🟢 OpenAI GPT-4o</option>
+          <option value="nvidia">⚡️ NVIDIA NIM</option>
+          <option value="openai">🟢 OpenAI</option>
         </select>
       </div>
 
-      <div id="nvidiaKeyRow" class="setting-item hidden">
-        <label class="setting-label">NVIDIA NIM API Key</label>
-        <div class="api-input-row">
-          <input id="nvidiaKey" type="password" class="api-input" placeholder="nvapi-xxxxxxxxxxxxxxxxxxxx" />
-          <button id="nvidiaKeySave" class="btn-save">儲存</button>
+      <!-- NVIDIA settings -->
+      <div id="nvidiaSettings" class="hidden">
+        <div class="setting-item">
+          <label class="setting-label">NVIDIA NIM API Key</label>
+          <div class="api-input-row">
+            <input id="nvidiaKey" type="password" class="api-input" placeholder="nvapi-xxxxxxxxxxxxxxxxxxxx" />
+            <button id="nvidiaKeySave" class="btn-save">儲存</button>
+          </div>
+          <p class="setting-hint">🔒 Key 僅儲存在本機，不會上傳</p>
         </div>
-        <p class="setting-hint">Key 僅儲存在本機，不會上傳</p>
+        <div class="setting-item">
+          <label class="setting-label">選擇模型</label>
+          <select id="nvidiaModel" class="lang-select">
+            <option value="meta/llama-3.1-8b-instruct">Llama 3.1 8B （免費額度最高）</option>
+            <option value="meta/llama-3.1-70b-instruct">Llama 3.1 70B （更強）</option>
+            <option value="meta/llama-3.3-70b-instruct">Llama 3.3 70B （最新）</option>
+            <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
+            <option value="google/gemma-2-9b-it">Google Gemma 2 9B</option>
+            <option value="nvidia/nemotron-4-340b-instruct">Nemotron 340B （最強）</option>
+          </select>
+          <p class="setting-hint">可到 <a href="https://build.nvidia.com/models" target="_blank" class="guide-link">build.nvidia.com/models</a> 查看所有可用模型</p>
+        </div>
       </div>
 
-      <div id="openaiKeyRow" class="setting-item hidden">
-        <label class="setting-label">OpenAI API Key</label>
-        <div class="api-input-row">
-          <input id="openaiKey" type="password" class="api-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" />
-          <button id="openaiKeySave" class="btn-save">儲存</button>
+      <!-- OpenAI settings -->
+      <div id="openaiSettings" class="hidden">
+        <div class="setting-item">
+          <label class="setting-label">OpenAI API Key</label>
+          <div class="api-input-row">
+            <input id="openaiKey" type="password" class="api-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" />
+            <button id="openaiKeySave" class="btn-save">儲存</button>
+          </div>
+          <p class="setting-hint">🔒 Key 僅儲存在本機，不會上傳</p>
         </div>
-        <p class="setting-hint">Key 僅儲存在本機，不會上傳</p>
+        <div class="setting-item">
+          <label class="setting-label">選擇模型</label>
+          <select id="openaiModel" class="lang-select">
+            <option value="gpt-4o-mini">GPT-4o Mini （機价最低）</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -109,34 +119,10 @@
     <div class="settings-section">
       <h2 class="settings-title">📖 如何獲取免費 NVIDIA NIM API</h2>
       <div class="guide-steps">
-        <div class="guide-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <div class="step-title">註冊帳號</div>
-            <div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點擊『 Sign Up 』，用郵筱免費註冊</div>
-          </div>
-        </div>
-        <div class="guide-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <div class="step-title">選擇模型</div>
-            <div class="step-desc">登入後，搜尋 <strong>meta/llama-3.1-8b-instruct</strong>（免費額度最高）</div>
-          </div>
-        </div>
-        <div class="guide-step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <div class="step-title">獲取 API Key</div>
-            <div class="step-desc">點擊模型頁面的 <strong>Get API Key</strong> 按鈕，後點擊『 Generate Key 』，複製 <code>nvapi-</code> 開頭的字串</div>
-          </div>
-        </div>
-        <div class="guide-step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <div class="step-title">貼入上方</div>
-            <div class="step-desc">將複製的 Key 貼入上方欄位，點『儲存』即可。<br>🎁 新帳戶每月免費 1000 次 API 呼叫</div>
-          </div>
-        </div>
+        <div class="guide-step"><div class="step-num">1</div><div class="step-body"><div class="step-title">註冊帳號</div><div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點『 Sign Up 』，用郵筱免費註冊</div></div></div>
+        <div class="guide-step"><div class="step-num">2</div><div class="step-body"><div class="step-title">選擇模型</div><div class="step-desc">登入後，搜尋並點選任意模型（建議選 <strong>Llama 3.1 8B</strong>）</div></div></div>
+        <div class="guide-step"><div class="step-num">3</div><div class="step-body"><div class="step-title">獲取 API Key</div><div class="step-desc">點擊模型頁面的 <strong>Get API Key</strong> 按鈕 → 『 Generate Key 』 → 複製 <code>nvapi-</code> 開頭的字串</div></div></div>
+        <div class="guide-step"><div class="step-num">4</div><div class="step-body"><div class="step-title">貼入上方</div><div class="step-desc">將 Key 貼入上方欄位儲存。🎁 新帳戶每月免費 <strong>1000 次</strong> API 呼叫</div></div></div>
       </div>
     </div>
 
@@ -154,16 +140,23 @@
         <button id="noteModalClose" class="modal-close">✕</button>
       </div>
       <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="subtitles">🎥 字幕回播</button>
+        <button class="modal-tab active" data-tab="subtitles">🎥 字幕</button>
         <button class="modal-tab" data-tab="summary">✨ AI 總結</button>
         <button class="modal-tab" data-tab="full">📝 全文</button>
       </div>
       <div id="audioPlayerWrap" class="audio-wrap hidden">
         <audio id="audioPlayer" controls></audio>
+        <button id="btnDownloadAudio" class="btn-download">⬇️ 下載錄音</button>
       </div>
       <div id="tabSubtitles" class="modal-body"><div id="subtitleList" class="subtitle-list"></div></div>
-      <div id="tabSummary"   class="modal-body hidden"><div id="modalSummary" class="modal-summary-text"></div></div>
-      <div id="tabFull"      class="modal-body hidden"><div id="modalFull" class="modal-full-text"></div></div>
+      <div id="tabSummary" class="modal-body hidden">
+        <div class="summary-toolbar">
+          <span id="summaryEngineLabel" class="ai-engine-label"></span>
+          <button id="btnModalSummarize" class="btn-ai">生成總結</button>
+        </div>
+        <div id="modalSummary" class="modal-summary-text"></div>
+      </div>
+      <div id="tabFull" class="modal-body hidden"><div id="modalFull" class="modal-full-text"></div></div>
     </div>
   </div>
 
