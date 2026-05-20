@@ -1,4 +1,4 @@
-// iNote v2.5 — saveNote race fix + Whisper ESM import fix
+// iNote v2.6 — fix interim text loss on finish
 
 // ---------- Theme ----------
 const $body = document.body;
@@ -65,23 +65,13 @@ function pad(n) { return String(n).padStart(2,'0'); }
 let mediaRecorder = null, audioChunks = [], audioBlob = null, micStream = null;
 
 function startAudio(stream) {
-  return new Promise(resolve => {
-    audioChunks = [];
-    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-    mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    // FIX: resolve only after onstop fires so audioBlob is ready before saveNote
-    mediaRecorder.onstop = () => {
-      audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-      resolve();
-    };
-    mediaRecorder.start(500);
-    // Resolve immediately for recording start (onstop resolve is only used via stopAndWait)
-    resolve();
-  });
+  audioChunks = [];
+  const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+  mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.start(500);
 }
 
-// Returns a Promise that resolves once mediaRecorder has fully stopped and audioBlob is set
 function stopAndWait() {
   return new Promise(resolve => {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') { resolve(); return; }
@@ -89,7 +79,7 @@ function stopAndWait() {
       audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
       resolve();
     };
-    mediaRecorder.stop();
+    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   });
 }
 
@@ -128,33 +118,36 @@ setState('idle');
 // ---------- Browser Speech Recognition ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null, isListening = false, isPaused = false;
-let fullText = '', subtitles = [], recordStart = 0, pausedAt = 0, totalPausedMs = 0;
+// FIX: track interim separately so finish can flush it into fullText
+let fullText = '', interimText = '', subtitles = [], recordStart = 0, pausedAt = 0, totalPausedMs = 0;
 
 if (SR) {
   recognition = new SR();
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.onresult = e => {
-    let interim = '';
+    interimText = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript;
       if (e.results[i].isFinal) {
         const elapsed = Math.floor((Date.now() - recordStart - totalPausedMs) / 1000);
         subtitles.push({ time: Math.max(0, elapsed), text: t.trim() });
         fullText += t + ' ';
-      } else { interim = t; }
+        interimText = '';
+      } else {
+        interimText = t;
+      }
     }
-    $box.textContent = fullText + interim;
+    $box.textContent = fullText + interimText;
   };
   recognition.onend = () => { if (isListening && !isPaused) recognition.start(); };
-  recognition.onerror = e => { if (e.error !== 'no-speech') { $status.textContent = '錯誤: ' + e.error; doHardStop(); setState('idle'); } };
+  recognition.onerror = e => { if (e.error !== 'no-speech') { $status.textContent = '錯誤: ' + e.error; stopRecognition(); setState('idle'); } };
 } else {
-  // No SR — disable start unless user picks Whisper
   $btnStart.disabled = true;
   $status.textContent = '請使用 Chrome，或選擇 Whisper AI 引擎';
 }
 
-// ---------- Whisper (loaded on demand, ESM) ----------
+// ---------- Whisper ----------
 let whisperPipe = null, whisperLoading = false, whisperIntervalId = null;
 const WHISPER_INTERVAL = 5000;
 
@@ -164,7 +157,6 @@ async function loadWhisper() {
   whisperLoading = true;
   $whisperStatus.textContent = '⬇️ 下載 Whisper 模型（~40MB），首次需 1-2 分鐘…';
   try {
-    // FIX: Use esm.sh which correctly exposes ES module exports
     const mod = await import('https://esm.sh/@xenova/transformers@2.17.2');
     const pipeline = mod.pipeline || mod.default?.pipeline;
     if (!pipeline) throw new Error('pipeline not found in module');
@@ -199,10 +191,10 @@ async function whisperTranscribeLoop() {
 // ---------- Recording control ----------
 async function startAll() {
   try {
-    fullText = ''; subtitles = []; timerSecs = 0; totalPausedMs = 0; isPaused = false;
+    fullText = ''; interimText = ''; subtitles = []; timerSecs = 0; totalPausedMs = 0; isPaused = false;
     $box.textContent = ''; audioBlob = null; hideSummary();
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    await startAudio(micStream);
+    startAudio(micStream);
     if (useWhisper) {
       const ok = await loadWhisper();
       if (!ok) return;
@@ -225,6 +217,13 @@ async function startAll() {
 function togglePause() {
   if (uiState === 'recording') {
     isPaused = true; pausedAt = Date.now();
+    // FIX: flush interim into fullText before pausing
+    if (interimText.trim()) {
+      const elapsed = Math.floor((Date.now() - recordStart - totalPausedMs) / 1000);
+      subtitles.push({ time: Math.max(0, elapsed), text: interimText.trim() });
+      fullText += interimText + ' ';
+      interimText = '';
+    }
     if (recognition) try { recognition.stop(); } catch(e) {}
     if (whisperIntervalId) { clearInterval(whisperIntervalId); whisperIntervalId = null; }
     if (mediaRecorder?.state === 'recording') mediaRecorder.pause();
@@ -254,14 +253,23 @@ function stopRecognition() {
 $btnStart.addEventListener('click', startAll);
 $btnPause.addEventListener('click', togglePause);
 
-// FIX: await stopAndWait so audioBlob is ready before saveNote runs
 $btnFinish.addEventListener('click', async () => {
+  // FIX: flush any remaining interim text BEFORE stopping
+  if (interimText.trim()) {
+    const elapsed = Math.floor((Date.now() - recordStart - totalPausedMs) / 1000);
+    subtitles.push({ time: Math.max(0, elapsed), text: interimText.trim() });
+    fullText += interimText + ' ';
+    interimText = '';
+    $box.textContent = fullText;
+  }
+  // FIX: also fall back to box text if fullText somehow still empty
+  if (!fullText.trim()) {
+    fullText = $box.textContent.trim();
+  }
   setState('idle');
   stopRecognition();
-  await stopAndWait(); // wait for mediaRecorder.onstop → audioBlob set
-  if (useWhisper) {
-    await whisperTranscribeLoop(); // final pass
-  }
+  await stopAndWait();
+  if (useWhisper) await whisperTranscribeLoop();
   saveNote();
 });
 
@@ -269,7 +277,7 @@ $btnReset.addEventListener('click', () => {
   if (uiState !== 'idle' && !confirm('確認放棄目前錄音？')) return;
   stopRecognition();
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  fullText = ''; subtitles = []; audioBlob = null;
+  fullText = ''; interimText = ''; subtitles = []; audioBlob = null;
   $box.textContent = ''; hideSummary();
   setState('idle');
 });
@@ -347,13 +355,13 @@ function saveNote() {
   function persist(hasAudio) {
     const ns = loadNotes(); ns.unshift(note); saveNotes(ns);
     alert(hasAudio ? '✅ 筆記已儲存！（含錄音）' : '✅ 筆記已儲存！');
-    fullText=''; subtitles=[]; audioBlob=null; $box.textContent=''; hideSummary();
+    fullText=''; interimText=''; subtitles=[]; audioBlob=null; $box.textContent=''; hideSummary();
   }
 
   if (audioBlob && audioBlob.size > 0 && audioBlob.size < 3*1024*1024) {
     const r = new FileReader();
     r.onload = () => { note.audioData = r.result; persist(true); };
-    r.onerror = () => persist(false); // fallback if read fails
+    r.onerror = () => persist(false);
     r.readAsDataURL(audioBlob);
   } else {
     persist(false);
