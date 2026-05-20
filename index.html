@@ -8,27 +8,24 @@
 </head>
 <body class="light">
 
-  <!-- Header -->
   <header>
     <div class="logo">🎙️ iNote</div>
     <div class="header-actions">
       <button id="themeToggle" title="切換主題">🌙</button>
-      <button id="tabRecord"  class="tab-btn active">錄音</button>
-      <button id="tabNotes"   class="tab-btn">筆記</button>
+      <button id="tabRecord" class="tab-btn active">錄音</button>
+      <button id="tabNotes"  class="tab-btn">筆記</button>
     </div>
   </header>
 
-  <!-- ========== RECORD PAGE ========== -->
+  <!-- RECORD PAGE -->
   <main id="pageRecord">
 
-    <!-- Status -->
     <div class="status-card">
       <div id="statusDot" class="dot idle"></div>
       <span id="statusText">選擇語言後開始錄音</span>
       <span id="recTimer" class="rec-timer"></span>
     </div>
 
-    <!-- Language -->
     <div class="lang-row">
       <label for="langSelect">🌐</label>
       <select id="langSelect" class="lang-select">
@@ -39,32 +36,36 @@
       </select>
     </div>
 
-    <!-- Controls -->
     <div class="btn-row">
       <button id="btnStart"  class="btn-primary">▶ 開始</button>
-      <button id="btnStop"   class="btn-danger"  disabled>⏹ 停止</button>
+      <button id="btnPause"  class="btn-warn" disabled>⏸ 暫停</button>
       <button id="btnClear"  class="btn-secondary">🗑 清除</button>
     </div>
 
-    <!-- Transcript -->
-    <div class="section-label">📝 即時轉錄</div>
     <div id="transcript" class="transcript-box" placeholder="開始錄音後，文字會即時顯示在這裡…"></div>
 
-    <!-- Save & Summarize -->
-    <div class="btn-row" style="margin-top:14px">
-      <button id="btnSave"      class="btn-accent">💾 儲存筆記</button>
-      <button id="btnSummarize" class="btn-purple">✨ AI 總結</button>
+    <!-- Action row -->
+    <div class="action-row">
+      <button id="btnSave" class="btn-finish" disabled>
+        <span class="btn-icon">⏹</span>
+        <span>結束錄製</span>
+      </button>
     </div>
 
-    <!-- Summary area (same page, below transcript) -->
-    <div id="summaryArea" class="summary-area hidden">
-      <div class="section-label">✨ AI 總結</div>
-      <div id="summaryOutput" class="summary-output"></div>
+    <!-- AI Summary Card -->
+    <div class="ai-card">
+      <div class="ai-card-header">
+        <span class="ai-card-title">✨ AI 智慧總結</span>
+        <button id="btnSummarize" class="btn-ai">生成</button>
+      </div>
+      <div id="summaryArea" class="ai-card-body hidden">
+        <div id="summaryOutput" class="ai-output"></div>
+      </div>
     </div>
 
   </main>
 
-  <!-- ========== NOTES PAGE ========== -->
+  <!-- NOTES PAGE -->
   <main id="pageNotes" class="hidden">
     <div class="notes-toolbar">
       <input id="searchInput" class="search-input" type="text" placeholder="🔍 搜尋筆記…" />
@@ -72,42 +73,30 @@
     <div id="notesList" class="notes-list"></div>
   </main>
 
-  <!-- ========== NOTE DETAIL MODAL ========== -->
+  <!-- NOTE DETAIL MODAL -->
   <div id="noteModal" class="modal hidden">
     <div class="modal-card">
-
       <div class="modal-header">
         <span id="noteModalTitle" class="modal-title"></span>
         <button id="noteModalClose" class="modal-close">✕</button>
       </div>
-
-      <!-- Tab bar inside modal -->
       <div class="modal-tabs">
         <button class="modal-tab active" data-tab="subtitles">🎥 字幕回播</button>
         <button class="modal-tab" data-tab="summary">✨ AI 總結</button>
         <button class="modal-tab" data-tab="full">📝 全文</button>
       </div>
-
-      <!-- Audio Player -->
       <div id="audioPlayerWrap" class="audio-wrap hidden">
         <audio id="audioPlayer" controls></audio>
       </div>
-
-      <!-- Subtitles Tab -->
       <div id="tabSubtitles" class="modal-body">
         <div id="subtitleList" class="subtitle-list"></div>
       </div>
-
-      <!-- Summary Tab -->
       <div id="tabSummary" class="modal-body hidden">
         <div id="modalSummary" class="modal-summary-text"></div>
       </div>
-
-      <!-- Full Text Tab -->
       <div id="tabFull" class="modal-body hidden">
         <div id="modalFull" class="modal-full-text"></div>
       </div>
-
     </div>
   </div>
 
