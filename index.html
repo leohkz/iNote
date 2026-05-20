@@ -14,27 +14,19 @@
       <button id="themeToggle" title="切換主題">🌙</button>
       <button id="tabRecord" class="tab-btn active">錄音</button>
       <button id="tabNotes"  class="tab-btn">筆記</button>
+      <button id="tabSettings" class="tab-btn">⚙️</button>
     </div>
   </header>
 
+  <!-- RECORD PAGE -->
   <main id="pageRecord">
-
     <div class="status-card">
       <div id="statusDot" class="dot idle"></div>
       <span id="statusText">點擊『開始』錄音</span>
       <span id="recTimer" class="rec-timer"></span>
     </div>
 
-    <div class="engine-row">
-      <span class="engine-label">識別引擎</span>
-      <div class="engine-tabs">
-        <button id="engineBrowser" class="engine-btn active">🌐 瀏覽器</button>
-        <button id="engineWhisper" class="engine-btn">✨ Whisper AI</button>
-      </div>
-      <span id="whisperStatus" class="whisper-status hidden"></span>
-    </div>
-
-    <div id="langRow" class="lang-row">
+    <div class="lang-row">
       <label for="langSelect">🌐 語言</label>
       <select id="langSelect" class="lang-select">
         <option value="zh-HK">粵語（香港）</option>
@@ -62,15 +54,16 @@
     <div class="ai-card">
       <div class="ai-card-header">
         <span class="ai-card-title">✨ AI 智慧總結</span>
+        <span id="aiEngineLabel" class="ai-engine-label"></span>
         <button id="btnSummarize" class="btn-ai">生成</button>
       </div>
       <div id="summaryArea" class="ai-card-body hidden">
         <div id="summaryOutput" class="ai-output"></div>
       </div>
     </div>
-
   </main>
 
+  <!-- NOTES PAGE -->
   <main id="pageNotes" class="hidden">
     <div class="notes-toolbar">
       <input id="searchInput" class="search-input" type="text" placeholder="🔍 搜尋筆記…" />
@@ -78,6 +71,82 @@
     <div id="notesList" class="notes-list"></div>
   </main>
 
+  <!-- SETTINGS PAGE -->
+  <main id="pageSettings" class="hidden">
+    <div class="settings-section">
+      <h2 class="settings-title">🤖 AI 總結引擎</h2>
+      <p class="settings-desc">輸入你自己的 API Key 來使用更強的 AI 總結。空白則使用內建本地引擎。</p>
+
+      <div class="setting-item">
+        <label class="setting-label">引擎選擇</label>
+        <select id="aiEngine" class="lang-select">
+          <option value="local">📱 本地引擎（免費，無需 API）</option>
+          <option value="nvidia">⚡️ NVIDIA NIM（免費，高質量）</option>
+          <option value="openai">🟢 OpenAI GPT-4o</option>
+        </select>
+      </div>
+
+      <div id="nvidiaKeyRow" class="setting-item hidden">
+        <label class="setting-label">NVIDIA NIM API Key</label>
+        <div class="api-input-row">
+          <input id="nvidiaKey" type="password" class="api-input" placeholder="nvapi-xxxxxxxxxxxxxxxxxxxx" />
+          <button id="nvidiaKeySave" class="btn-save">儲存</button>
+        </div>
+        <p class="setting-hint">Key 僅儲存在本機，不會上傳</p>
+      </div>
+
+      <div id="openaiKeyRow" class="setting-item hidden">
+        <label class="setting-label">OpenAI API Key</label>
+        <div class="api-input-row">
+          <input id="openaiKey" type="password" class="api-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" />
+          <button id="openaiKeySave" class="btn-save">儲存</button>
+        </div>
+        <p class="setting-hint">Key 僅儲存在本機，不會上傳</p>
+      </div>
+    </div>
+
+    <!-- NVIDIA NIM Guide -->
+    <div class="settings-section">
+      <h2 class="settings-title">📖 如何獲取免費 NVIDIA NIM API</h2>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">註冊帳號</div>
+            <div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點擊『 Sign Up 』，用郵筱免費註冊</div>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">選擇模型</div>
+            <div class="step-desc">登入後，搜尋 <strong>meta/llama-3.1-8b-instruct</strong>（免費額度最高）</div>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">獲取 API Key</div>
+            <div class="step-desc">點擊模型頁面的 <strong>Get API Key</strong> 按鈕，後點擊『 Generate Key 』，複製 <code>nvapi-</code> 開頭的字串</div>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">貼入上方</div>
+            <div class="step-desc">將複製的 Key 貼入上方欄位，點『儲存』即可。<br>🎁 新帳戶每月免費 1000 次 API 呼叫</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2 class="settings-title">🗑 清除所有筆記</h2>
+      <button id="btnClearAll" class="btn-danger">清除全部筆記</button>
+    </div>
+  </main>
+
+  <!-- NOTE DETAIL MODAL -->
   <div id="noteModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -98,7 +167,6 @@
     </div>
   </div>
 
-  <!-- NO external scripts here. Whisper loaded on-demand via dynamic import() in app.js -->
   <script src="app.js"></script>
 </body>
 </html>
