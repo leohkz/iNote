@@ -1,4 +1,4 @@
-// iNote v2.9
+// iNote v3.0
 
 // ---------- Theme ----------
 const $body = document.body;
@@ -49,24 +49,36 @@ function toggleEngineRows() {
 $aiEngine.addEventListener('change', () => {
   localStorage.setItem('inote-ai-engine', $aiEngine.value);
   toggleEngineRows();
+  showToast('✅ 引擎已切換: ' + $aiEngine.options[$aiEngine.selectedIndex].text);
 });
-// Preset fills the text input
+
+// 快選直接自動儲存，不需要再按儲存
 $nvidiaModelPreset.addEventListener('change', () => {
-  if ($nvidiaModelPreset.value) $nvidiaModel.value = $nvidiaModelPreset.value;
+  if (!$nvidiaModelPreset.value) return;
+  $nvidiaModel.value = $nvidiaModelPreset.value;
+  localStorage.setItem('inote-nvidia-model', $nvidiaModelPreset.value);
+  showToast('✅ 模型已切換: ' + $nvidiaModelPreset.value.split('/').pop());
 });
 document.getElementById('nvidiaModelSave').addEventListener('click', () => {
   const v = $nvidiaModel.value.trim();
   if (!v) { showToast('請輸入模型名稱'); return; }
   localStorage.setItem('inote-nvidia-model', v);
-  showToast('✅ 模型已儲存: '+v);
+  showToast('✅ 模型已儲存: ' + v);
 });
-$openaiModel.addEventListener('change', () => localStorage.setItem('inote-openai-model', $openaiModel.value));
+$openaiModel.addEventListener('change', () => {
+  localStorage.setItem('inote-openai-model', $openaiModel.value);
+  showToast('✅ 模型已切換: ' + $openaiModel.value);
+});
 document.getElementById('nvidiaKeySave').addEventListener('click', () => {
-  localStorage.setItem('inote-nvidia-key', $nvidiaKey.value.trim());
+  const k = $nvidiaKey.value.trim();
+  if (!k) { showToast('請輸入 API Key'); return; }
+  localStorage.setItem('inote-nvidia-key', k);
   showToast('✅ NVIDIA Key 已儲存');
 });
 document.getElementById('openaiKeySave').addEventListener('click', () => {
-  localStorage.setItem('inote-openai-key', $openaiKey.value.trim());
+  const k = $openaiKey.value.trim();
+  if (!k) { showToast('請輸入 API Key'); return; }
+  localStorage.setItem('inote-openai-key', k);
   showToast('✅ OpenAI Key 已儲存');
 });
 document.getElementById('btnClearAll').addEventListener('click', () => {
@@ -79,7 +91,7 @@ function showToast(msg) {
   let t = document.getElementById('toast');
   if (!t) { t=document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
   t.textContent=msg; t.classList.add('show');
-  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2500);
+  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
 // ---------- Language ----------
@@ -98,7 +110,6 @@ function pad(n){return String(n).padStart(2,'0');}
 // ---------- MediaRecorder ----------
 let mediaRecorder=null, audioChunks=[], audioBlob=null, micStream=null, recordMime='audio/webm';
 function getBestMime(){
-  // Prefer m4a (mp4), fallback to webm, then ogg
   if(MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
   if(MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
   return 'audio/ogg';
@@ -223,51 +234,80 @@ $btnReset.addEventListener('click',()=>{
 
 // ---------- AI Summary ----------
 async function summarizeText(text){
-  const engine=localStorage.getItem('inote-ai-engine')||'local';
-  if(engine==='nvidia')return nvidiaSummarize(text);
-  if(engine==='openai')return openaiSummarize(text);
+  const engine = localStorage.getItem('inote-ai-engine') || 'local';
+  const model  = localStorage.getItem('inote-nvidia-model') || 'meta/llama-3.1-8b-instruct';
+  const key    = localStorage.getItem('inote-nvidia-key') || '';
+  console.log('[iNote AI] engine:', engine, '| model:', model, '| key prefix:', key.slice(0,8));
+  if(engine==='nvidia') return nvidiaSummarize(text);
+  if(engine==='openai') return openaiSummarize(text);
+  console.log('[iNote AI] 使用本地引擎');
   return ruleBasedSummary(text);
 }
+
 async function nvidiaSummarize(text){
-  const key=localStorage.getItem('inote-nvidia-key');
-  if(!key)throw new Error('請先在 ⚙️ 設置輸入 NVIDIA NIM API Key');
-  const model=localStorage.getItem('inote-nvidia-model')||'meta/llama-3.1-8b-instruct';
-  const res=await fetch('https://integrate.api.nvidia.com/v1/chat/completions',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({
-      model,
-      messages:[
-        {role:'system',content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
-        {role:'user',content:'會議內容：\n'+text.slice(0,3000)}
-      ],
-      max_tokens:600,temperature:0.3
-    })
-  });
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||e.message||'狀態碼 '+res.status);}
-  const data=await res.json();
-  return data.choices?.[0]?.message?.content||'無輸出';
+  const key = localStorage.getItem('inote-nvidia-key');
+  if(!key) throw new Error('請先在 ⚙️ 設置輸入 NVIDIA NIM API Key 並按儲存');
+  const model = localStorage.getItem('inote-nvidia-model') || 'meta/llama-3.1-8b-instruct';
+  console.log('[iNote] 呼叫 NVIDIA NIM, model:', model);
+  let res;
+  try {
+    res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {role:'system', content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
+          {role:'user', content:'會議內容：\n'+text.slice(0,3000)}
+        ],
+        max_tokens: 600, temperature: 0.3
+      })
+    });
+  } catch(netErr) {
+    console.error('[iNote] 網路錯誤:', netErr);
+    throw new Error('網路錯誤: ' + netErr.message + '（請檢查網路或嘗試用 Chrome）');
+  }
+  console.log('[iNote] NVIDIA 回應狀態:', res.status);
+  if(!res.ok){
+    let errMsg = '狀態碼 ' + res.status;
+    try { const e=await res.json(); errMsg=e.detail||e.message||e.error?.message||errMsg; } catch(e){}
+    throw new Error('NVIDIA API 錯誤: ' + errMsg);
+  }
+  const data = await res.json();
+  console.log('[iNote] NVIDIA 回應內容:', JSON.stringify(data).slice(0,200));
+  return data.choices?.[0]?.message?.content || '無輸出';
 }
+
 async function openaiSummarize(text){
-  const key=localStorage.getItem('inote-openai-key');
-  if(!key)throw new Error('請先在 ⚙️ 設置輸入 OpenAI API Key');
-  const model=localStorage.getItem('inote-openai-model')||'gpt-4o-mini';
-  const res=await fetch('https://api.openai.com/v1/chat/completions',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({
-      model,
-      messages:[
-        {role:'system',content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
-        {role:'user',content:'會議內容：\n'+text.slice(0,6000)}
-      ],
-      max_tokens:600,temperature:0.3
-    })
-  });
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'狀態碼 '+res.status);}
-  const data=await res.json();
-  return data.choices?.[0]?.message?.content||'無輸出';
+  const key = localStorage.getItem('inote-openai-key');
+  if(!key) throw new Error('請先在 ⚙️ 設置輸入 OpenAI API Key 並按儲存');
+  const model = localStorage.getItem('inote-openai-model') || 'gpt-4o-mini';
+  let res;
+  try {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {role:'system', content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
+          {role:'user', content:'會議內容：\n'+text.slice(0,6000)}
+        ],
+        max_tokens: 600, temperature: 0.3
+      })
+    });
+  } catch(netErr) {
+    throw new Error('網路錯誤: ' + netErr.message);
+  }
+  if(!res.ok){
+    let errMsg = '狀態碼 ' + res.status;
+    try { const e=await res.json(); errMsg=e.error?.message||errMsg; } catch(e){}
+    throw new Error('OpenAI 錯誤: ' + errMsg);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '無輸出';
 }
+
 function ruleBasedSummary(text){
   const sents=(text.match(/[^。！？.!?\n]+[。！？.!?\n]?/g)||[]).map(s=>s.trim()).filter(s=>s.length>4);
   if(!sents.length)return text.trim();
@@ -358,12 +398,13 @@ function getEngineName(){
   const om=localStorage.getItem('inote-openai-model')||'gpt-4o-mini';
   if(e==='nvidia')return '⚡️ NIM · '+m.split('/').pop();
   if(e==='openai')return '🟢 '+om;
-  return '📱 本地引擎';
+  return '📱 本地引擎（免費）';
 }
 
 $btnModalSummarize.addEventListener('click',async()=>{
   if(!currentNote)return;
-  $btnModalSummarize.disabled=true;$btnModalSummarize.textContent='處理中…';
+  $btnModalSummarize.disabled=true;
+  $btnModalSummarize.textContent='處理中…';
   $modalSummary.innerHTML='<span class="spinner"></span> AI 處理中…';
   try{
     const result=await summarizeText(currentNote.fullText);
@@ -372,8 +413,9 @@ $btnModalSummarize.addEventListener('click',async()=>{
     if(idx>=0){notes[idx].summary=result;saveNotes(notes);}
     $modalSummary.innerHTML=result.replace(/\n/g,'<br>');
     $btnModalSummarize.textContent='重新生成';
+    $summaryEngineLabel.textContent=getEngineName();
   }catch(e){
-    $modalSummary.innerHTML='⚠️ 失敗: '+e.message;
+    $modalSummary.innerHTML='<span style="color:var(--danger)">⚠️ 失敗: '+e.message+'</span>';
     $btnModalSummarize.textContent='重試';
   }
   $btnModalSummarize.disabled=false;
@@ -382,7 +424,6 @@ $btnModalSummarize.addEventListener('click',async()=>{
 $btnDownloadAudio.addEventListener('click',()=>{
   if(!currentNote?.audioData)return;
   const mime=currentNote.audioMime||currentNote.audioData.split(';')[0].split(':')[1]||'audio/webm';
-  // extension mapping
   const extMap={'audio/mp4':'m4a','audio/webm':'webm','audio/ogg':'ogg'};
   const ext=extMap[mime]||'webm';
   const a=document.createElement('a');
@@ -396,7 +437,6 @@ function openNote(note){
   $noteModalTitle.textContent=note.title;
   $summaryEngineLabel.textContent=getEngineName();
 
-  // Audio player — show/hide by toggling visibility, not display
   const audioEl=$audioWrap.querySelector('audio');
   const nw=document.createElement('audio');nw.controls=true;
   $audioWrap.replaceChild(nw,audioEl);
@@ -408,7 +448,6 @@ function openNote(note){
     $audioWrap.style.display='none';
   }
 
-  // Subtitles
   if(note.subtitles?.length){
     $subtitleList.innerHTML=note.subtitles.map((s,i)=>`
       <div class="subtitle-item" data-index="${i}" data-time="${s.time}">
