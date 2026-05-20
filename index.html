@@ -36,19 +36,20 @@
       </select>
     </div>
 
+    <!-- 3 control buttons -->
     <div class="btn-row">
       <button id="btnStart"  class="btn-primary">▶ 開始</button>
-      <button id="btnPause"  class="btn-warn" disabled>⏸ 暫停</button>
-      <button id="btnClear"  class="btn-secondary">🗑 清除</button>
+      <button id="btnPause"  class="btn-warn"    disabled>⏸ 暫停</button>
+      <button id="btnReset"  class="btn-secondary">🔄 重新錄製</button>
     </div>
 
     <div id="transcript" class="transcript-box" placeholder="開始錄音後，文字會即時顯示在這裡…"></div>
 
-    <!-- Action row -->
+    <!-- Finish = stop + save together -->
     <div class="action-row">
-      <button id="btnSave" class="btn-finish" disabled>
+      <button id="btnFinish" class="btn-finish" disabled>
         <span class="btn-icon">⏹</span>
-        <span>結束錄製</span>
+        <span>結束錄製並儲存</span>
       </button>
     </div>
 
