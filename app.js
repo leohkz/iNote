@@ -1,4 +1,4 @@
-// iNote v3.0
+// iNote v4.0 - Full rewrite of timestamp + API proxy
 
 // ---------- Theme ----------
 const $body = document.body;
@@ -33,6 +33,7 @@ const $nvidiaModel       = document.getElementById('nvidiaModel');
 const $nvidiaModelPreset = document.getElementById('nvidiaModelPreset');
 const $openaiKey         = document.getElementById('openaiKey');
 const $openaiModel       = document.getElementById('openaiModel');
+const $proxyUrl          = document.getElementById('proxyUrl');
 
 function initSettings() {
   $aiEngine.value    = localStorage.getItem('inote-ai-engine') || 'local';
@@ -40,6 +41,7 @@ function initSettings() {
   $nvidiaModel.value = localStorage.getItem('inote-nvidia-model') || 'meta/llama-3.1-8b-instruct';
   $openaiKey.value   = localStorage.getItem('inote-openai-key') || '';
   $openaiModel.value = localStorage.getItem('inote-openai-model') || 'gpt-4o-mini';
+  $proxyUrl.value    = localStorage.getItem('inote-proxy-url') || '';
   toggleEngineRows();
 }
 function toggleEngineRows() {
@@ -51,8 +53,6 @@ $aiEngine.addEventListener('change', () => {
   toggleEngineRows();
   showToast('✅ 引擎已切換: ' + $aiEngine.options[$aiEngine.selectedIndex].text);
 });
-
-// 快選直接自動儲存，不需要再按儲存
 $nvidiaModelPreset.addEventListener('change', () => {
   if (!$nvidiaModelPreset.value) return;
   $nvidiaModel.value = $nvidiaModelPreset.value;
@@ -80,6 +80,11 @@ document.getElementById('openaiKeySave').addEventListener('click', () => {
   if (!k) { showToast('請輸入 API Key'); return; }
   localStorage.setItem('inote-openai-key', k);
   showToast('✅ OpenAI Key 已儲存');
+});
+document.getElementById('proxyUrlSave').addEventListener('click', () => {
+  const v = $proxyUrl.value.trim();
+  localStorage.setItem('inote-proxy-url', v);
+  showToast(v ? '✅ Proxy URL 已儲存' : '✅ 已清除 Proxy，直接呼叫');
 });
 document.getElementById('btnClearAll').addEventListener('click', () => {
   if (!confirm('確認刪除全部筆記？此操作不可還原')) return;
@@ -153,24 +158,36 @@ setState('idle');
 // ---------- Speech Recognition ----------
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recognition=null,isListening=false,isPaused=false;
+// FIX: track when each interim phrase started, for accurate timestamp
 let fullText='',interimText='',subtitles=[],recordStart=0,pausedAt=0,totalPausedMs=0;
+let interimStartMs=0; // when current interim phrase began
+
 if(SR){
   recognition=new SR();
   recognition.continuous=true;
   recognition.interimResults=true;
   recognition.onresult=e=>{
-    interimText='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       const t=e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        const elapsed=Math.floor((Date.now()-recordStart-totalPausedMs)/1000);
-        subtitles.push({time:Math.max(0,elapsed-Math.ceil(t.length/8)),text:t.trim()});
-        fullText+=t+' ';interimText='';
-      }else{interimText=t;}
+        // Use the time when this phrase STARTED (interimStartMs), not when it ended
+        const startSec=Math.max(0,Math.floor((interimStartMs-recordStart-totalPausedMs)/1000));
+        subtitles.push({time:startSec, text:t.trim()});
+        fullText+=t+' ';
+        interimText='';
+        interimStartMs=0;
+      } else {
+        // Record when this interim phrase first appeared
+        if(!interimStartMs) interimStartMs=Date.now();
+        interimText=t;
+      }
     }
     $box.textContent=fullText+interimText;
   };
-  recognition.onend=()=>{if(isListening&&!isPaused)recognition.start();};
+  recognition.onend=()=>{
+    interimStartMs=0;
+    if(isListening&&!isPaused)recognition.start();
+  };
   recognition.onerror=e=>{if(e.error!=='no-speech'){$status.textContent='錯誤:'+e.error;stopRecognition();setState('idle');}}
 }else{
   $btnStart.disabled=true;
@@ -179,14 +196,18 @@ if(SR){
 
 function flushInterim(){
   if(!interimText.trim())return;
-  const elapsed=Math.floor((Date.now()-recordStart-totalPausedMs)/1000);
-  subtitles.push({time:Math.max(0,elapsed),text:interimText.trim()});
-  fullText+=interimText+' ';interimText='';
+  const startSec=interimStartMs
+    ?Math.max(0,Math.floor((interimStartMs-recordStart-totalPausedMs)/1000))
+    :Math.floor((Date.now()-recordStart-totalPausedMs)/1000);
+  subtitles.push({time:startSec, text:interimText.trim()});
+  fullText+=interimText+' ';
+  interimText='';
+  interimStartMs=0;
   $box.textContent=fullText;
 }
 async function startAll(){
   try{
-    fullText='';interimText='';subtitles=[];timerSecs=0;totalPausedMs=0;isPaused=false;
+    fullText='';interimText='';subtitles=[];timerSecs=0;totalPausedMs=0;isPaused=false;interimStartMs=0;
     $box.textContent='';audioBlob=null;
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});
     startAudio(micStream);
@@ -210,7 +231,7 @@ function togglePause(){
   }
 }
 function stopRecognition(){
-  isListening=false;isPaused=false;
+  isListening=false;isPaused=false;interimStartMs=0;
   if(recognition)try{recognition.stop();}catch(e){}
   if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
   resetTimer();
@@ -233,81 +254,68 @@ $btnReset.addEventListener('click',()=>{
 });
 
 // ---------- AI Summary ----------
+// Calls go through optional Cloudflare Worker proxy to bypass CORS/CSP
+async function callAI(endpoint, payload, authHeader) {
+  const proxy = localStorage.getItem('inote-proxy-url') || '';
+  const url = proxy
+    ? proxy  // Worker receives {endpoint, payload, auth} and forwards
+    : endpoint;
+  const body = proxy
+    ? JSON.stringify({ endpoint, payload, auth: authHeader })
+    : JSON.stringify(payload);
+  const headers = proxy
+    ? { 'Content-Type': 'application/json' }
+    : { 'Content-Type': 'application/json', 'Authorization': authHeader };
+  let res;
+  try {
+    res = await fetch(url, { method: 'POST', headers, body });
+  } catch(e) {
+    throw new Error('網路連接失敗: ' + e.message);
+  }
+  if (!res.ok) {
+    let msg = 'HTTP ' + res.status;
+    try { const j=await res.json(); msg=j.detail||j.message||j.error?.message||msg; } catch(e){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 async function summarizeText(text){
   const engine = localStorage.getItem('inote-ai-engine') || 'local';
-  const model  = localStorage.getItem('inote-nvidia-model') || 'meta/llama-3.1-8b-instruct';
-  const key    = localStorage.getItem('inote-nvidia-key') || '';
-  console.log('[iNote AI] engine:', engine, '| model:', model, '| key prefix:', key.slice(0,8));
   if(engine==='nvidia') return nvidiaSummarize(text);
   if(engine==='openai') return openaiSummarize(text);
-  console.log('[iNote AI] 使用本地引擎');
   return ruleBasedSummary(text);
 }
-
 async function nvidiaSummarize(text){
   const key = localStorage.getItem('inote-nvidia-key');
-  if(!key) throw new Error('請先在 ⚙️ 設置輸入 NVIDIA NIM API Key 並按儲存');
-  const model = localStorage.getItem('inote-nvidia-model') || 'meta/llama-3.1-8b-instruct';
-  console.log('[iNote] 呼叫 NVIDIA NIM, model:', model);
-  let res;
-  try {
-    res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {role:'system', content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
-          {role:'user', content:'會議內容：\n'+text.slice(0,3000)}
-        ],
-        max_tokens: 600, temperature: 0.3
-      })
-    });
-  } catch(netErr) {
-    console.error('[iNote] 網路錯誤:', netErr);
-    throw new Error('網路錯誤: ' + netErr.message + '（請檢查網路或嘗試用 Chrome）');
-  }
-  console.log('[iNote] NVIDIA 回應狀態:', res.status);
-  if(!res.ok){
-    let errMsg = '狀態碼 ' + res.status;
-    try { const e=await res.json(); errMsg=e.detail||e.message||e.error?.message||errMsg; } catch(e){}
-    throw new Error('NVIDIA API 錯誤: ' + errMsg);
-  }
-  const data = await res.json();
-  console.log('[iNote] NVIDIA 回應內容:', JSON.stringify(data).slice(0,200));
+  if(!key) throw new Error('請先在⚙️設置輸入 NVIDIA Key 並按儲存');
+  const model = localStorage.getItem('inote-nvidia-model')||'meta/llama-3.1-8b-instruct';
+  const payload = {
+    model,
+    messages:[
+      {role:'system',content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
+      {role:'user',content:'會議內容：\n'+text.slice(0,3000)}
+    ],
+    max_tokens:600, temperature:0.3
+  };
+  const data = await callAI('https://integrate.api.nvidia.com/v1/chat/completions', payload, 'Bearer '+key);
   return data.choices?.[0]?.message?.content || '無輸出';
 }
-
 async function openaiSummarize(text){
   const key = localStorage.getItem('inote-openai-key');
-  if(!key) throw new Error('請先在 ⚙️ 設置輸入 OpenAI API Key 並按儲存');
-  const model = localStorage.getItem('inote-openai-model') || 'gpt-4o-mini';
-  let res;
-  try {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {role:'system', content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
-          {role:'user', content:'會議內容：\n'+text.slice(0,6000)}
-        ],
-        max_tokens: 600, temperature: 0.3
-      })
-    });
-  } catch(netErr) {
-    throw new Error('網路錯誤: ' + netErr.message);
-  }
-  if(!res.ok){
-    let errMsg = '狀態碼 ' + res.status;
-    try { const e=await res.json(); errMsg=e.error?.message||errMsg; } catch(e){}
-    throw new Error('OpenAI 錯誤: ' + errMsg);
-  }
-  const data = await res.json();
+  if(!key) throw new Error('請先在⚙️設置輸入 OpenAI Key 並按儲存');
+  const model = localStorage.getItem('inote-openai-model')||'gpt-4o-mini';
+  const payload = {
+    model,
+    messages:[
+      {role:'system',content:'你是會議助理。請對以下會議記錄做簡明總結，列出重點和行動項目，用繁體中文回答。'},
+      {role:'user',content:'會議內容：\n'+text.slice(0,6000)}
+    ],
+    max_tokens:600, temperature:0.3
+  };
+  const data = await callAI('https://api.openai.com/v1/chat/completions', payload, 'Bearer '+key);
   return data.choices?.[0]?.message?.content || '無輸出';
 }
-
 function ruleBasedSummary(text){
   const sents=(text.match(/[^。！？.!?\n]+[。！？.!?\n]?/g)||[]).map(s=>s.trim()).filter(s=>s.length>4);
   if(!sents.length)return text.trim();
@@ -415,7 +423,7 @@ $btnModalSummarize.addEventListener('click',async()=>{
     $btnModalSummarize.textContent='重新生成';
     $summaryEngineLabel.textContent=getEngineName();
   }catch(e){
-    $modalSummary.innerHTML='<span style="color:var(--danger)">⚠️ 失敗: '+e.message+'</span>';
+    $modalSummary.innerHTML='<span style="color:var(--danger)">⚠️ '+e.message+'</span>';
     $btnModalSummarize.textContent='重試';
   }
   $btnModalSummarize.disabled=false;
@@ -436,7 +444,6 @@ function openNote(note){
   currentNote=note;
   $noteModalTitle.textContent=note.title;
   $summaryEngineLabel.textContent=getEngineName();
-
   const audioEl=$audioWrap.querySelector('audio');
   const nw=document.createElement('audio');nw.controls=true;
   $audioWrap.replaceChild(nw,audioEl);
@@ -447,7 +454,6 @@ function openNote(note){
   }else{
     $audioWrap.style.display='none';
   }
-
   if(note.subtitles?.length){
     $subtitleList.innerHTML=note.subtitles.map((s,i)=>`
       <div class="subtitle-item" data-index="${i}" data-time="${s.time}">
@@ -458,14 +464,12 @@ function openNote(note){
       item.addEventListener('click',()=>{nw.currentTime=parseInt(item.dataset.time);nw.play();});
     });
   }else $subtitleList.innerHTML='<p class="empty-hint">此筆記沒有字幕資料</p>';
-
   $modalSummary.innerHTML=note.summary
     ?note.summary.replace(/\n/g,'<br>')
     :'<span style="color:var(--text-muted)">尚未生成，點擊『生成總結』</span>';
   $btnModalSummarize.textContent=note.summary?'重新生成':'生成總結';
   $btnModalSummarize.disabled=false;
   $modalFull.textContent=note.fullText;
-
   document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.modal-tab[data-tab="subtitles"]').classList.add('active');
   document.getElementById('tabSubtitles').classList.remove('hidden');

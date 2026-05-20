@@ -97,7 +97,6 @@
             </optgroup>
             <optgroup label="其他">
               <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
-              <option value="mistralai/mixtral-8x7b-instruct-v0.1">Mixtral 8x7B</option>
               <option value="google/gemma-2-9b-it">Google Gemma 2 9B</option>
               <option value="qwen/qwen2.5-72b-instruct">Qwen 2.5 72B</option>
               <option value="nvidia/nemotron-4-340b-instruct">Nemotron 340B（最強）</option>
@@ -111,6 +110,14 @@
             <button id="nvidiaModelSave" class="btn-save">儲存</button>
           </div>
           <p class="setting-hint">可到 <a href="https://build.nvidia.com/models" target="_blank" class="guide-link">build.nvidia.com/models</a> 查看全部可用模型</p>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">Cloudflare Worker 代理 URL（可選）</label>
+          <div class="api-input-row">
+            <input id="proxyUrl" type="text" class="api-input" placeholder="https://your-worker.workers.dev" />
+            <button id="proxyUrlSave" class="btn-save">儲存</button>
+          </div>
+          <p class="setting-hint">💡 若 AI 呼叫失敗，可設置 Worker 代理解決 CORS 問題。<a href="https://github.com/leohkz/iNote#worker" target="_blank" class="guide-link">查看設置教學</a></p>
         </div>
       </div>
 
@@ -140,7 +147,7 @@
       <h2 class="settings-title">📖 如何獲取免費 NVIDIA NIM API</h2>
       <div class="guide-steps">
         <div class="guide-step"><div class="step-num">1</div><div class="step-body"><div class="step-title">註冊帳號</div><div class="step-desc">前往 <a href="https://build.nvidia.com" target="_blank" class="guide-link">build.nvidia.com</a>，點『 Sign Up 』，用郵箱免費註冊</div></div></div>
-        <div class="guide-step"><div class="step-num">2</div><div class="step-body"><div class="step-title">進入任意模型頁</div><div class="step-desc">登入後點擊任意模型（建議 <strong>DeepSeek V4 Flash</strong> 或 <strong>Llama 3.1 8B</strong>）</div></div></div>
+        <div class="guide-step"><div class="step-num">2</div><div class="step-body"><div class="step-title">進入任意模型頁</div><div class="step-desc">登入後點擊任意模型（建議 <strong>DeepSeek V4 Flash</strong>）</div></div></div>
         <div class="guide-step"><div class="step-num">3</div><div class="step-body"><div class="step-title">獲取 API Key</div><div class="step-desc">點『 Get API Key 』 → 『 Generate Key 』 → 複製 <code>nvapi-</code> 開頭字串</div></div></div>
         <div class="guide-step"><div class="step-num">4</div><div class="step-body"><div class="step-title">貼入上方儲存</div><div class="step-desc">🎁 新帳戶每月免費 <strong>1000 次</strong> API 呼叫</div></div></div>
       </div>
